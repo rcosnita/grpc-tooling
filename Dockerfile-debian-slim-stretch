@@ -1,0 +1,20 @@
+FROM debian:stretch-slim as grpc_tooling
+
+ADD external/grpc /home/grpc/external/grpc
+ADD .git /home/grpc/.git
+ADD .gitmodules /home/grpc/.gitmodules
+
+RUN apt-get update -y && \
+    apt-get install -y build-essential dh-autoreconf git
+
+RUN cd /home/grpc && \
+    git submodule update --init --recursive && \
+    cd external/grpc && \
+    make clean && make -j8
+
+RUN cd /home/grpc && \
+    find . -name '.git' -type d | xargs rm -rf
+
+FROM debian:stretch-slim
+COPY --from=grpc_tooling /home/grpc/external/grpc/bins /home/grpc/bins
+WORKDIR /home/grpc
